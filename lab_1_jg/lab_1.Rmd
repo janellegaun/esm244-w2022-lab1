@@ -1,0 +1,106 @@
+---
+title: "ESM 244 Lab 1"
+author: "Janelle Gaun"
+date: "1/6/2022"
+output: html_document
+---
+
+```{r setup, include=TRUE, warning= FALSE, message= FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warnings= FALSE)
+library(tidyverse)
+library(here)
+library(sf)
+library(tmap)
+```
+
+### Read in the data
+
+```{r}
+sf_trees <- read_csv(here('data', 'sf_trees', 'sf_trees.csv'))
+```
+###Part 1: Wrangling and ggplot
+
+** Example 1** Find counts of observations from 'legal_status' and wrangle a bit. 
+
+```{r}
+### method 1: Group by() %>% summarize()
+
+sf_trees %>% 
+  group_by(legal_status) %>% 
+  summarize(tree_count =n())
+
+### Method 2: Different way plus a few more functions 
+
+top_5_status <- sf_trees %>% 
+  count(legal_status) %>% 
+  drop_na(legal_status) %>% #drop_na drops any na enteries. we are specifying dropping na in the legal_status column only
+  rename(tree_count = n) %>% 
+  relocate(tree_count) %>% #brings table to front of the table
+  slice_max(tree_count, n=5) %>% 
+  arrange(-tree_count) #the negative sign indicates from highest to lowest
+
+```
+
+
+Make a graph of the top 5 from above: 
+
+```{r}
+ggplot(data=top_5_status, aes(fct_reorder(legal_status, tree_count), y = tree_count)) +
+  geom_col(fill = 'darkgreen') +
+  labs(x = 'Legal Status', y = "Tree Count")+ 
+  coord_flip()+ 
+  theme_minimal()
+```
+
+**Example 2:** Only Keep observation where legal status is 'Permitted Site' and caretaker is 'MIA, and store as a 'permitted_data_df'
+
+shift-cmd-c to comment/uncomment quickly
+```{r}
+#sf_trees$legal_status %>% unique()
+# unique(sf_trees$caretaker)
+
+permitted_data_df <- sf_trees %>% 
+  filter(legal_status %in% c('Permitted Site', 'Private') & caretaker %in% 'MTA')
+  
+```
+
+
+**Example 3:** Only keep Blackwood Acacia trees, and then only keep solumns 'legal_status', 'date', 'latitude' and store as 'blackwood_acacia_df'
+
+
+```{r}
+blackwood_acacia_df <- sf_trees %>% 
+  filter(str_detect(species, 'Blackwood Acacia')) %>% 
+  select(legal_status, date, lat = latitude, lon = longitude)
+
+
+##Make a little graph of locations
+ggplot(data = blackwood_acacia_df, 
+       aes(x = lon, y = lat)) +
+  geom_point(color= 'darkgreen')
+  
+```
+
+** Example 4:** Use 'tidyr::separate()''
+
+```{r}
+sf_trees_sep <- sf_trees %>% 
+  separate(species,into = c('spp_scientific', 'species_common'), sep =' :: ')
+```
+
+
+**Example 5:** Use 'tidyr::unite()
+
+```{r}
+ex_5 <- sf_trees %>% 
+    unite('id_status', tree_id, legal_status, sep = '_R_')
+```
+
+
+
+
+
+
+
+
+
